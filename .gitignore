@@ -136,8 +136,8 @@ dmypy.json
 *.idea
 *.metaflow
 *.tar
-*.png
+# *.png
 *.vscode
-*.JPEG
-*.jpg
-*.jpeg
+# *.JPEG
+# *.jpg
+# *.jpeg
