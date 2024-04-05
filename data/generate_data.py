@@ -8,13 +8,12 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 from common import DataRecord, DataScenarios, SEED
 from utils import load_json_file, dump_as_pickle
-from data.data_utils import generate_backgrounds, generate_imagenet, generate_fixed, generate_translations_rotations, generate_xor, normalise_data, scale_to_bound
+from data.data_utils import generate_backgrounds, generate_fixed, generate_translations_rotations, generate_xor, normalise_data, scale_to_bound
 
 from datetime import datetime
 from pathlib import Path
 
 import os
-import sys
 
 os.environ['PYTHONHASHSEED']=str(SEED)
 random.seed(SEED)
@@ -29,13 +28,10 @@ scenario_dict = {
 
 
 def data_generation_process(config: Dict, output_dir: str) -> List:
-    # experiment_list = []
     image_shape = np.array(config["image_shape"])*config["image_scale"]
     for i in range(config['num_experiments']): # generate multiple datasets if desired
         
         backgrounds = generate_backgrounds(config['sample_size'], config['mean_data'], config['var_data'], image_shape )
-        if config["use_imagenet"]:
-            imagenet_backgrounds = generate_imagenet(config['sample_size'])
         
         # Iterate over config
         k = 0
@@ -45,18 +41,13 @@ def data_generation_process(config: Dict, output_dir: str) -> List:
                 patterns = scenario_dict.get(scenario)(params=config, image_shape=list(image_shape))
                 ground_truths = patterns.copy()
 
-                for correlated in ['white', 'correlated', 'imagenet']:
-                    if correlated == 'imagenet' and not config["use_imagenet"]:
-                        continue
+                for correlated in ['white', 'correlated']:
                     copy_backgrounds = np.zeros((config['sample_size'], image_shape[0]*image_shape[1]))
                     params['correlated_background'] = correlated
                     if correlated == 'correlated':
                         for j, background in enumerate(backgrounds.copy()):
                             copy_backgrounds[j] = gaussian_filter(np.reshape(background, (image_shape[0],image_shape[1])), config['smoothing_sigma']).reshape((image_shape[0]*image_shape[1]))
                         alpha_ind = 1
-                    elif correlated == 'imagenet' and config["use_imagenet"]:
-                        copy_backgrounds = imagenet_backgrounds.copy()
-                        alpha_ind = 2
                     else:
                         copy_backgrounds = backgrounds.copy()
                         alpha_ind = 0
@@ -108,9 +99,8 @@ def data_generation_process(config: Dict, output_dir: str) -> List:
                         masks_test = masks_val_test[test_indices]
 
                         correlated_string = "uncorrelated"
-                        if correlated == 'imagenet':
-                            correlated_string = 'imagenet'
-                        elif correlated == 'correlated':
+                      
+                        if correlated == 'correlated':
                             correlated_string = "correlated"
                         
                         scenario_key = f'{params["scenario"]}_{config["image_scale"]}d{config["pattern_scale"]}p_{alpha}_{correlated_string}'
@@ -120,13 +110,10 @@ def data_generation_process(config: Dict, output_dir: str) -> List:
                         dump_as_pickle(data=scenarios, output_dir=output_dir, file_name=scenario_key)
 
 def main():
-    config_file = 'data_config'
-    if len (sys.argv) > 1:
-        config_file = sys.argv[1]
-    config = load_json_file(file_path=f'data/{config_file}.json') 
+    config = load_json_file(file_path='data/data_config.json') 
     
     date = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    folder_path = f'{config["output_dir"]}/{date}'
+    folder_path = f'{config["output_dir"]}/{date}/noWhitening'
     Path(folder_path).mkdir(parents=True, exist_ok=True)
     
     data_generation_process(config=config, output_dir=folder_path)

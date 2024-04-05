@@ -28,7 +28,11 @@ def apply_xai(config: Dict) -> XAIScenarios:
     print('Starting XAI methods')
 
     data = {}
-    data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*')
+    ## data path for whitened data below
+    data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*_{sys.argv[3]}*')
+    
+    ## data path for noWhitening data below
+    # data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*')
     for data_path in data_paths:
         data_scenario = load_pickle(file_path=data_path)
         for key,value in data_scenario.items():
@@ -40,6 +44,14 @@ def apply_xai(config: Dict) -> XAIScenarios:
         experiments_regex = ''
     torch_model_paths = glob(f'{config["training_output"]}/{sys.argv[1]}*_{sys.argv[2]}*{experiments_regex}.pt')
 
+    ## models path for whitened data below
+    model_path_pattern = f'{config["training_output"]}/{sys.argv[1]}_{sys.argv[2]}/*{sys.argv[3]}*.pt'
+
+    ## models path for noWhitening data below
+    # model_path_pattern = f'{config["training_output"]}/{sys.argv[1]}_{sys.argv[2]}/*.pt'
+    print("Model path pattern:", model_path_pattern)
+    torch_model_paths = glob(model_path_pattern)
+    print("Model paths found:", torch_model_paths)
     for scenario_name, dataset in data.items():
         results[scenario_name] = {
             'LLR': [],
@@ -69,8 +81,17 @@ def main():
     print('loading config')
     config = load_json_file(file_path='xai/xai_config.json')
     xai_results = apply_xai(config=config)
-    fname = f'{sys.argv[1]}_{sys.argv[2]}_xai_records'
-    out_dir = f'{config["output_dir"]}/{sys.argv[3]}'
+    ## name for whitened data below
+    fname = f'{sys.argv[1]}_{sys.argv[2]}_{sys.argv[3]}_xai_records'
+
+    ## name for nonWhitening data below
+    # fname = f'{sys.argv[1]}_{sys.argv[2]}_xai_records'
+
+    ## out dir for whitened data below
+    out_dir = f'{config["output_dir"]}/{sys.argv[4]}'
+
+    ## out dir for nonWhitening data below
+    # out_dir = f'{config["output_dir"]}/{sys.argv[3]}'
     dump_as_pickle(data=xai_results, output_dir=out_dir, file_name=fname)
 
 

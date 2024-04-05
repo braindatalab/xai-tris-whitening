@@ -221,15 +221,22 @@ def calculate_metrics(xai_output, scenario, masks_test, test_size, model_name, m
                     else:
                         scen_save = scenario.split('_')[0]
                     correct_dict['scenario'] += [scen_save] * len(precision)
-                    correct_dict['background'] += [scenario.split('_')[-1]] * len(precision)
+                    correct_dict['background'] += [extract_background_from_filename(scenario)] * len(precision)
 
                     incorrect_dict['Method'] += [mapped] * len(precision_incorrect)
                     incorrect_dict['Methods'] += [mapped] * len(precision_incorrect)
                     
                     incorrect_dict['scenario'] += [scen_save] * len(precision_incorrect)
-                    incorrect_dict['background'] += [scenario.split('_')[-1]] * len(precision_incorrect)
+                    incorrect_dict['background'] += [extract_background_from_filename(scenario)] * len(precision_incorrect)
 
             boxplot_dicts[scenario]['correct'][model] += [correct_dict]
             boxplot_dicts[scenario]['incorrect'][model] += [incorrect_dict]
 
     return boxplot_dicts
+  
+def extract_background_from_filename(filename):
+  parts = filename.split('_')
+  for part in parts:
+      if part in ['correlated', 'uncorrelated']:
+          return part
+  return None

@@ -4,8 +4,8 @@
   "runs_per_model": 5,
   "patience": 400,
   "lr": 0.0005,
-  "output_dir": "artifacts/tetris/training",
-  "data_path": "artifacts/tetris/data/2023-06-14-11-32",
+  "output_dir": "artifacts/tetris/training/unWhitened",
+  "data_path": "artifacts/tetris/data/2023-12-04-14-46/unWhitened",
   "checkpoint_path":  "",
   "data_scenario": "tetris_data"
 }

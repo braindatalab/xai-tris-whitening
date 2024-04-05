@@ -27,7 +27,11 @@ def apply_xai(config: Dict) -> XAIScenarios:
     results = XAIScenarios    
     print('Starting XAI methods')
     data = {}
-    data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*')
+    ## data path for whitened data below
+    data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*_{sys.argv[3]}*')
+
+    ## data path for nonWhitening data below
+    # data_paths = glob(f'{config["data_path"]}/{sys.argv[1]}*_{sys.argv[2]}*')
     for data_path in data_paths:
         data_scenario = load_pickle(file_path=data_path)
         for key,value in data_scenario.items():
@@ -37,8 +41,17 @@ def apply_xai(config: Dict) -> XAIScenarios:
     experiments_regex = '_0_*'
     if config["num_experiments"] > 1:
         experiments_regex = ''
-    keras_model_paths = glob(f'{config["training_output"]}/{sys.argv[1]}*_{sys.argv[2]}*_Keras{experiments_regex}.h5')
+    # keras_model_paths = glob(f'{config["training_output"]}/{sys.argv[1]}*_{sys.argv[2]}*_Keras{experiments_regex}.h5')
 
+    ## model path for whitened data below
+    model_path_pattern = f'{config["training_output"]}/{sys.argv[1]}_{sys.argv[2]}/*{sys.argv[3]}*_Keras*.h5'
+
+    ## model path for nonWhitening data below
+    # model_path_pattern = f'{config["training_output"]}/{sys.argv[1]}_{sys.argv[2]}/*_Keras*.h5'
+
+    print("Model path pattern:", model_path_pattern)
+    keras_model_paths = glob(model_path_pattern)
+    print("Model paths found:", keras_model_paths)
     print(keras_model_paths)
     print(data.keys())
     for scenario_name, dataset in data.items():
@@ -68,10 +81,19 @@ def main():
     print('loading config')
     config = load_json_file(file_path='xai/xai_config.json')
     xai_results = apply_xai(config=config)
-    fname = f'{sys.argv[1]}_{sys.argv[2]}_xai_records_keras'
-    out_dir = f'{config["output_dir"]}/{sys.argv[3]}'
+   
+    ## name for whitened data below
+    fname = f'{sys.argv[1]}_{sys.argv[2]}_{sys.argv[3]}_xai_records_keras'
+
+    ## name for nonWhitening data below
+    # fname = f'{sys.argv[1]}_{sys.argv[2]}_xai_records_keras'
+
+    ## out dir for whitened data below
+    out_dir = f'{config["output_dir"]}/{sys.argv[4]}'
+
+    ## out dir for nonWhitening data below
+    # out_dir = f'{config["output_dir"]}/{sys.argv[3]}'
+
     dump_as_pickle(data=xai_results, output_dir=out_dir, file_name=fname)
-
-
 if __name__ == '__main__':
     main()

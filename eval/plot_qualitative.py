@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 plt.style.use('seaborn-colorblind')
-
+import sys
 import pickle as pkl
 
 import torch
@@ -93,15 +94,23 @@ def get_global_plot_data(data, xai_output, correct_inds, test_size, method_names
 
 def scen_key_mapping(scen_key):
     scen_dict = {'linear': 'LIN', 'multiplicative': 'MULT', 'translations': 'RIGID','xor': 'XOR'}
-    bg_dict = {'uncorrelated': 'WHITE', 'correlated': 'CORR', 'imagenet': 'IMAGENET'}
+    bg_dict = {'uncorrelated': 'WHITE', 'correlated': 'CORR'}
     components = scen_key.split('_')
+    if "correlated" in components:
+      background = "correlated"
+    elif "uncorrelated" in components:
+      background = "uncorrelated"
+    else:
+      background = "none"
 
-    return scen_dict[components[0]] + '\n' +  bg_dict[components[-1]]
+    return scen_dict[components[0]] + '\n' +  bg_dict[background]
 
 
 def qualitative_results_landscape(all_plots, figsize=(17,14), edge_length=64, out_dir='./figures'):
     for plot_ind, plot_data in enumerate(all_plots):
         f = plt.figure(figsize=figsize)
+        # plt.suptitle('No Whitening', fontsize=16, x=0.5, y=0.93)
+        plt.suptitle(f'{sys.argv[1]}', fontsize=16, x=0.5, y=0.93)
         gs = gridspec.GridSpec(1,6, hspace=0.01, wspace=0.05, width_ratios=[0.65,1,1,1,1,0.32]) # Grid of [ [data, ground truth], [method for each model] * 5, [baselines] ]
 
         w_space = 0.075
@@ -183,13 +192,15 @@ def qualitative_results_landscape(all_plots, figsize=(17,14), edge_length=64, ou
                 lapl_ax.xaxis.set_label_position('top')
             
             i+=1
-
-        plt.savefig(f'{out_dir}/qualitative_results_landscape_{plot_ind}.png', bbox_inches="tight")
-        plt.savefig(f'{out_dir}/qualitative_results_landscape_hires_{plot_ind}.png', bbox_inches="tight", dpi=300)
+        
+        plt.savefig(f'{out_dir}/qualitative_results_landscape_{plot_ind}.png', bbox_inches="tight", dpi=300)
+        # plt.savefig(f'{out_dir}/qualitative_results_landscape_hires_{plot_ind}.png', bbox_inches="tight", dpi=300)
 
 
 def global_results(plot_data, figsize=(8.5,14), edge_length=64, out_dir='./figures'):
     f = plt.figure(figsize=figsize)
+    # plt.suptitle('No Whitening', fontsize=16, x=0.5, y=0.93)
+    plt.suptitle(f'{sys.argv[1]}', fontsize=16, x=0.4, y=0.93)
     gs = gridspec.GridSpec(6, 1, wspace=0.01, hspace=0.1, height_ratios=[0.315,1,1,1,1,0.65]) # Grid of [ [data, ground truth], [method for each model] * 5, [baselines] ]
 
     h_space = 0.075
@@ -268,8 +279,8 @@ def global_results(plot_data, figsize=(8.5,14), edge_length=64, out_dir='./figur
             
         i+=1
 
-    plt.savefig(f'{out_dir}/qualitative_global_results.png', bbox_inches="tight")
-    plt.savefig(f'{out_dir}/qualitative_global_results_hires.png', bbox_inches="tight", dpi=300)
+    plt.savefig(f'{out_dir}/qualitative_global_results.png', bbox_inches="tight", dpi=300)
+    # plt.savefig(f'{out_dir}/qualitative_global_results_hires.png', bbox_inches="tight", dpi=300)
 
 
 def main():
@@ -282,8 +293,9 @@ def main():
     correct_inds = []
 
     for scenario in ['linear', 'multiplicative', 'translations_rotations', 'xor']:
-        for background in ['uncorrelated', 'correlated', 'imagenet']: 
-            data_paths = glob(f'{config["data_path"]}/{scenario}*{background}.pkl')
+        for background in ['uncorrelated', 'correlated']:
+            # data_paths = glob(f'{config["data_path"]}/noWhitening/{scenario}*{background}.pkl')
+            data_paths = glob(f'{config["data_path"]}/{scenario}*{background}*{sys.argv[1]}.pkl')
             if data_paths == []:
                 continue
             data_key = ''
@@ -293,19 +305,22 @@ def main():
                 for key, val in scen_data.items():
                     data[key] = val
                     data_key = key
-
-            with open(f'{config["xai_path"]}/{scenario}_{background}_xai_records.pkl', 'rb') as file:
+            # with open(f'{config["xai_path"]}/noWhitening/{scenario}_{background}/{scenario}_{background}_xai_records.pkl', 'rb') as file:
+            with open(f'{config["xai_path"]}/{scenario}_{background}_{sys.argv[2]}/{scenario}_{background}_{sys.argv[1]}_xai_records.pkl', 'rb') as file:
                 xai_output = pkl.load(file)
-
             for key, val in xai_output.items():
                 xai_results[key] = val
 
-            with open(f'{config["out_dir"]}/{scenario}_{background}_quantitative_results.pkl', 'rb') as file:
+            # with open(f'{config["out_dir"]}/noWhitening/{scenario}_{background}_quantitative_results.pkl', 'rb') as file:
+            with open(f'{config["out_dir"]}/final/{scenario}_{background}_{sys.argv[1]}_quantitative_results.pkl', 'rb') as file:
                 quantitative_results = pkl.load(file)
-            
             correct_inds.append(quantitative_results['intersections'])
 
-            torch_model_paths = glob(f'{config["training_path"]}/{scenario}*_{background}*_0_*.pt')
+            # model_path_pattern = f'{config["training_output"]}/noWhitening/{scenario}*_{background}/*.pt'
+            model_path_pattern = f'{config["training_output"]}/{scenario}*_{background}/*{sys.argv[1]}*.pt'
+            # print("Model path pattern:", model_path_pattern)
+            torch_model_paths = glob(model_path_pattern)
+            # print("Model paths found:", torch_model_paths)
 
             for model_name in ['LLR', 'MLP', 'CNN']:
                 if model_name == 'LLR' and 'linear' not in scenario:
@@ -326,17 +341,16 @@ def main():
                         gc.collect()
     
     intersection = np.logical_and.reduce(inds_list)
-    print(intersection)
 
     # choose an index to plot or give a list of indexes, comment below intersection = to get the above
     #  intersection of correctly predicted test samples to plot across all scenarios
     rand_idx = 0
     intersection = [rand_idx]
-
-    out_folder_path = f'{config["out_dir"]}/figures'
+    # out_folder_path = f'{config["out_dir"]}/figures/noWhitening'
+    out_folder_path = f'{config["out_dir"]}/figures/{sys.argv[1]}'
     Path(f'{out_folder_path}').mkdir(parents=True, exist_ok=True)
 
-    plot_data_local = get_local_plot_data(data, xai_results, model_num=0, plot_inds=intersection,
+    plot_data_local = get_local_plot_data(data, xai_results, model_num=0, plot_inds=[intersection],
                                     method_names=['Gradient SHAP', 'LIME', 'LRP', 'Integrated Gradients'],
                                     baselines=['laplace', 'rand'],                      
                 )
