@@ -23,7 +23,7 @@
         "sobel",
         "laplace"
     ],
-    "test_size": 2000,
+    "test_size": 1000,
     "mini_batch": 50,
     "num_experiments": 1,
     "training_output": "artifacts/tetris/training",
